@@ -1,4 +1,4 @@
-const CACHE = 'cartas-v6';
+const CACHE = 'cartas-v7';
 const ASSETS = [
   './',
   './index.html',

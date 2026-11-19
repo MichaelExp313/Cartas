@@ -3,7 +3,7 @@
 App web instalable (PWA) para guardar las cartas de tus restaurantes favoritos con fotos.
 
 ## Funciones
-- Crear restaurantes con **nombre**, **teléfono** (botón para llamar con un toque) y **varias fotos** (cámara o galería, selección múltiple).
+- Crear restaurantes con **nombre**, **teléfono** (llamar con un toque), **ubicación** (abrir en el mapa) — ambos se pueden compartir — y **varias fotos** (cámara o galería, selección múltiple).
 - Ver las fotos a pantalla completa: deslizar entre fotos, **pellizcar o doble toque para ampliar** y leer bien la carta.
 - Elegir la foto de portada, eliminar fotos, compartir cualquier foto con el botón que aparece en su miniatura, renombrar y borrar restaurantes.
 - Buscador (aparece cuando tienes 4 o más restaurantes).
