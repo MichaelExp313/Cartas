@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mis Cartas</title>
+<meta name="theme-color" content="#c44a2c" id="metaTheme">
+<meta name="description" content="Guarda las cartas de tus restaurantes favoritos con fotos.">
+<script>try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}</script>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cartas">
+<style>
+:root{
+  --bg:#fbf6ef; --card:#ffffff; --ink:#2b211c; --muted:#8a7b70; --line:#eadfd2;
+  --accent:#c44a2c; --accent-2:#a63c22; --soft:#f6e7dc; --danger:#b3261e;
+  --radius:16px; --shadow:0 2px 10px rgba(60,30,10,.08);
+  --surface:#ffffff; --danger-soft:#fbe9e7; --hdr:#c44a2c;
+  --safe-top:env(safe-area-inset-top,0px); --safe-bot:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+body{min-height:100vh;padding-bottom:calc(90px + var(--safe-bot))}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+input{font:inherit}
+.hidden{display:none!important}
+
+/* Top bar */
+header{position:sticky;top:0;z-index:10;background:var(--accent);color:#fff;padding:calc(12px + var(--safe-top)) 16px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+header h1{font-size:20px;margin:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+.hbtn{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+.hbtn:active{background:rgba(255,255,255,.18)}
+.hbtn svg{width:24px;height:24px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* Search */
+.search{padding:14px 16px 4px}
+.search input{width:100%;padding:12px 14px 12px 42px;border:1px solid var(--line);border-radius:14px;background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238a7b70' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") 13px center/20px no-repeat;outline:none;font-size:16px}
+.search input:focus{border-color:var(--accent)}
+
+/* Restaurant grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;padding:12px 16px}
+.rcard{background:var(--card);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);text-align:left;display:flex;flex-direction:column}
+.rcard:active{transform:scale(.98)}
+.rcover{aspect-ratio:4/3;background:var(--soft);display:grid;place-items:center;overflow:hidden;position:relative}
+.rcover img{width:100%;height:100%;object-fit:cover;display:block}
+.rcover svg{width:44px;height:44px;stroke:var(--accent);opacity:.5;fill:none;stroke-width:1.6}
+.rcount{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;padding:3px 8px;border-radius:999px;display:flex;align-items:center;gap:4px}
+.rinfo{padding:10px 12px 12px}
+.rtitle{font-weight:650;font-size:15px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+.empty{text-align:center;padding:60px 30px;color:var(--muted)}
+.empty .big{width:96px;height:96px;margin:0 auto 18px;border-radius:26px;background:var(--soft);display:grid;place-items:center}
+.empty .big img{width:70px;height:70px;border-radius:16px}
+.empty h2{color:var(--ink);font-size:19px;margin:0 0 8px}
+.empty p{margin:0;line-height:1.5}
+
+/* FAB */
+.fab{position:fixed;right:20px;bottom:calc(22px + var(--safe-bot));z-index:20;height:58px;padding:0 22px 0 18px;border-radius:20px;background:var(--accent);color:#fff;font-weight:650;display:flex;align-items:center;gap:8px;box-shadow:0 6px 18px rgba(196,74,44,.4)}
+.fab:active{background:var(--accent-2)}
+.fab svg{width:24px;height:24px;stroke:#fff;stroke-width:2.4;fill:none;stroke-linecap:round}
+
+/* Detail */
+.dhead{padding:16px 16px 4px}
+.dhead .meta{color:var(--muted);font-size:14px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;padding:12px 16px}
+.pitem{position:relative;aspect-ratio:3/4;border-radius:12px;overflow:hidden;background:var(--soft)}
+.pitem img{width:100%;height:100%;object-fit:cover;display:block}
+.pitem .badge{position:absolute;left:6px;top:6px;background:var(--accent);color:#fff;font-size:11px;font-weight:600;padding:2px 7px;border-radius:999px}
+.addtile{aspect-ratio:3/4;border-radius:12px;border:2px dashed #d8c3b3;color:var(--accent);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:600;background:var(--surface)}
+.addtile svg{width:30px;height:30px;stroke:var(--accent);stroke-width:2;fill:none;stroke-linecap:round}
+
+/* Sheets / modals */
+.backdrop{position:fixed;inset:0;background:rgba(30,15,5,.45);z-index:50;display:flex;align-items:flex-end;justify-content:center;animation:fade .15s}
+.sheet{background:var(--bg);width:100%;max-width:560px;border-radius:22px 22px 0 0;padding:20px 18px calc(20px + var(--safe-bot));max-height:92vh;overflow:auto;animation:up .2s ease-out}
+@media(min-width:600px){.backdrop{align-items:center}.sheet{border-radius:22px}}
+@keyframes up{from{transform:translateY(30px);opacity:.4}}
+@keyframes fade{from{opacity:0}}
+.sheet h3{margin:0 0 14px;font-size:19px}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:0 0 6px}
+.field input{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);font-size:16px;outline:none}
+.field input:focus{border-color:var(--accent)}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:8px;margin:14px 0}
+.thumb{position:relative;aspect-ratio:3/4;border-radius:10px;overflow:hidden;background:var(--soft)}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb .x{position:absolute;right:4px;top:4px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:15px;line-height:24px;text-align:center}
+.pickrow{display:flex;gap:10px;margin-top:14px}
+.btn{flex:1;padding:13px 14px;border-radius:12px;font-weight:650;display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px}
+.btn svg{width:20px;height:20px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.primary:disabled{opacity:.45}
+.btn.soft{background:var(--soft);color:var(--accent-2)}
+.btn.ghost{background:var(--surface);border:1px solid var(--line)}
+.btn.danger{background:var(--danger-soft);color:var(--danger)}
+.actions{display:flex;gap:10px;margin-top:18px}
+.menu-list button{width:100%;display:flex;align-items:center;gap:14px;padding:14px 6px;border-bottom:1px solid var(--line);font-size:16px;text-align:left}
+.menu-list button:last-child{border-bottom:0}
+.menu-list svg{width:22px;height:22px;stroke:var(--accent);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.menu-list .danger{color:var(--danger)}
+.menu-list .danger svg{stroke:var(--danger)}
+.menu-list small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.note{font-size:14px;color:var(--muted);line-height:1.5}
+
+/* Viewer */
+.viewer{position:fixed;inset:0;background:#000;z-index:60;display:flex;flex-direction:column;touch-action:none}
+.vtop,.vbot{position:absolute;left:0;right:0;z-index:2;display:flex;align-items:center;gap:8px;padding:10px 12px;color:#fff;transition:opacity .2s}
+.vtop{top:0;padding-top:calc(10px + var(--safe-top));background:linear-gradient(rgba(0,0,0,.7),transparent)}
+.vbot{bottom:0;padding-bottom:calc(14px + var(--safe-bot));background:linear-gradient(transparent,rgba(0,0,0,.75));justify-content:center}
+.viewer.ui-off .vtop,.viewer.ui-off .vbot{opacity:0;pointer-events:none}
+.vtop .t{flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vbtn{min-width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 10px;color:#fff;font-size:13px}
+.vbtn:active{background:rgba(255,255,255,.15)}
+.vbtn svg{width:24px;height:24px;stroke:#fff;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.vstage{flex:1;overflow:hidden;position:relative}
+.vtrack{display:flex;height:100%;will-change:transform}
+.vslide{flex:0 0 100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.vslide img{max-width:100%;max-height:100%;user-select:none;-webkit-user-drag:none;transform-origin:0 0;will-change:transform}
+.vnav{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.15);display:none;place-items:center}
+.vnav svg{width:26px;height:26px;stroke:#fff;stroke-width:2.4;fill:none}
+@media(hover:hover){.vnav{display:grid}}
+.vnav.l{left:14px}.vnav.r{right:14px}
+
+/* Toast & install banner */
+.toast{position:fixed;left:50%;bottom:calc(96px + var(--safe-bot));transform:translateX(-50%);background:#2b211c;color:#fff;padding:11px 18px;border-radius:12px;font-size:14px;z-index:100;box-shadow:0 6px 18px rgba(0,0,0,.25);animation:fade .2s;max-width:90vw;text-align:center}
+.install{margin:12px 16px 0;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow)}
+.install img{width:40px;height:40px;border-radius:10px}
+.install div{flex:1;font-size:14px;line-height:1.35}
+.install b{display:block}
+.install .go{background:var(--accent);color:#fff;padding:8px 14px;border-radius:10px;font-weight:650;font-size:14px}
+.install .no{color:var(--muted);font-size:20px;padding:0 4px}
+.loading{position:fixed;inset:0;z-index:120;background:rgba(251,246,239,.85);display:grid;place-items:center;font-weight:600;color:var(--accent-2)}
+.spinner{width:36px;height:36px;border:4px solid var(--soft);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== Tema oscuro ===== */
+:root[data-theme=dark]{
+  --bg:#17120f; --card:#241c18; --surface:#241c18; --ink:#f3e9df; --muted:#a8968a; --line:#3a2e27;
+  --accent:#e0643f; --accent-2:#f08a66; --soft:#33251f; --danger:#ff8a80; --danger-soft:#3a1f1c;
+  --shadow:0 2px 10px rgba(0,0,0,.4); --hdr:#2a1d18; color-scheme:dark;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme=light]){
+    --bg:#17120f; --card:#241c18; --surface:#241c18; --ink:#f3e9df; --muted:#a8968a; --line:#3a2e27;
+    --accent:#e0643f; --accent-2:#f08a66; --soft:#33251f; --danger:#ff8a80; --danger-soft:#3a1f1c;
+    --shadow:0 2px 10px rgba(0,0,0,.4); --hdr:#2a1d18; color-scheme:dark;
+  }
+}
+header{background:var(--hdr)}
+.addtile{border-color:var(--line)}
+.toast{background:var(--ink);color:var(--bg)}
+.loading{background:color-mix(in srgb,var(--bg) 85%,transparent)}
+.menu-list .check{margin-left:auto;color:var(--accent);font-weight:700}
+</style>
+</head>
+<body>
+
+<header>
+  <button class="hbtn hidden" id="backBtn" aria-label="Volver"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+  <h1 id="title">Mis Cartas</h1>
+  <button class="hbtn" id="themeBtn" aria-label="Cambiar tema"><svg viewBox="0 0 24 24" id="themeIcon"></svg></button>
+  <button class="hbtn" id="moreBtn" aria-label="Más opciones"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/></svg></button>
+</header>
+
+<main id="home">
+  <div class="install hidden" id="installBanner">
+    <img src="icons/icon-192.png" alt="">
+    <div><b>Instala la app</b><span id="installText">Tenla en tu pantalla de inicio</span></div>
+    <button class="go" id="installGo">Instalar</button>
+    <button class="no" id="installNo" aria-label="Cerrar">×</button>
+  </div>
+  <div class="search hidden" id="searchWrap"><input id="search" type="search" placeholder="Buscar restaurante…" autocomplete="off"></div>
+  <div class="grid" id="grid"></div>
+  <div class="empty hidden" id="empty">
+    <div class="big"><img src="icons/icon-192.png" alt=""></div>
+    <h2>Aún no tienes cartas</h2>
+    <p>Pulsa <b>Añadir</b> para crear un restaurante y subir las fotos de su carta.</p>
+  </div>
+</main>
+
+<main id="detail" class="hidden">
+  <div class="dhead"><div class="meta" id="dmeta"></div></div>
+  <div class="pgrid" id="pgrid"></div>
+</main>
+
+<button class="fab" id="fab"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span id="fabText">Añadir</span></button>
+
+<input type="file" id="fileGallery" accept="image/*" multiple class="hidden">
+<input type="file" id="fileCamera" accept="image/*" capture="environment" class="hidden">
+<input type="file" id="fileImport" accept="application/json,.json" class="hidden">
+
+<div id="modalRoot"></div>
+
+<script>
+/* ============ IndexedDB ============ */
+const DB_NAME='cartas-db', DB_VER=1;
+let db;
+function openDB(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open(DB_NAME,DB_VER);
+    r.onupgradeneeded=()=>{
+      const d=r.result;
+      if(!d.objectStoreNames.contains('restaurants')) d.createObjectStore('restaurants',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('photos')){
+        const s=d.createObjectStore('photos',{keyPath:'id'});
+        s.createIndex('rid','rid');
+      }
+    };
+    r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);
+  });
+}
+function tx(stores,mode,fn){
+  return new Promise((res,rej)=>{
+    const t=db.transaction(stores,mode); let out;
+    Promise.resolve(fn(t)).then(v=>out=v);
+    t.oncomplete=()=>res(out); t.onerror=()=>rej(t.error); t.onabort=()=>rej(t.error);
+  });
+}
+const reqP=r=>new Promise((res,rej)=>{r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+const getAll=store=>tx([store],'readonly',t=>reqP(t.objectStore(store).getAll()));
+const getOne=(store,id)=>tx([store],'readonly',t=>reqP(t.objectStore(store).get(id)));
+const put=(store,obj)=>tx([store],'readwrite',t=>{t.objectStore(store).put(obj)});
+
+/* ============ Utils ============ */
+const $=s=>document.querySelector(s);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const urlCache=new Map();
+function photoURL(p){ if(!urlCache.has(p.id)) urlCache.set(p.id,URL.createObjectURL(p.blob)); return urlCache.get(p.id); }
+function dropURL(id){ if(urlCache.has(id)){URL.revokeObjectURL(urlCache.get(id));urlCache.delete(id);} }
+function toast(msg,ms=2200){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),ms); }
+function loading(on,msg='Procesando…'){
+  let el=$('#loadingEl');
+  if(on){ if(!el){el=document.createElement('div');el.id='loadingEl';el.className='loading';document.body.appendChild(el);} el.innerHTML=`<div><div class="spinner"></div>${esc(msg)}</div>`; }
+  else if(el) el.remove();
+}
+const fmtDate=ts=>new Date(ts).toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'});
+
+/* Compress image: keep text in menus legible (max 2000px, JPEG 0.85) */
+async function compress(file){
+  const MAX=2000;
+  let bmp;
+  try{ bmp=await createImageBitmap(file,{imageOrientation:'from-image'}); }
+  catch(e){
+    bmp=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=URL.createObjectURL(file);});
+  }
+  const w=bmp.width,h=bmp.height,sc=Math.min(1,MAX/Math.max(w,h));
+  const c=document.createElement('canvas'); c.width=Math.round(w*sc); c.height=Math.round(h*sc);
+  c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+  const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.85));
+  return (blob && blob.size<file.size)?blob:file;
+}
+
+/* ============ State & routing ============ */
+let restaurants=[]; let current=null; let currentPhotos=[];
+
+async function loadRestaurants(){
+  restaurants=(await getAll('restaurants')).sort((a,b)=>b.updated-a.updated);
+}
+async function photosOf(r){
+  const all=await tx(['photos'],'readonly',t=>reqP(t.objectStore('photos').index('rid').getAll(r.id)));
+  const map=new Map(all.map(p=>[p.id,p]));
+  return (r.photoIds||[]).map(id=>map.get(id)).filter(Boolean);
+}
+
+function route(){
+  const h=location.hash;
+  closeViewer(true);
+  const m=h.match(/^#\/r\/(.+)$/);
+  if(m) showDetail(decodeURIComponent(m[1])); else showHome();
+}
+window.addEventListener('hashchange',route);
+
+/* ============ Home ============ */
+const ICON_PLATE='<svg viewBox="0 0 24 24"><rect x="5" y="3" width="11" height="18" rx="2"/><path d="M8 8h5M8 12h5M8 16h3M19 3v18M19 3c-1 1-1 4 0 5"/></svg>';
+async function showHome(){
+  current=null;
+  $('#home').classList.remove('hidden'); $('#detail').classList.add('hidden');
+  $('#backBtn').classList.add('hidden'); $('#title').textContent='Mis Cartas'; $('#fabText').textContent='Añadir';
+  await loadRestaurants();
+  renderGrid();
+}
+async function renderGrid(){
+  const q=$('#search').value.trim().toLowerCase();
+  const list=restaurants.filter(r=>!q||r.title.toLowerCase().includes(q));
+  $('#searchWrap').classList.toggle('hidden',restaurants.length<4);
+  $('#empty').classList.toggle('hidden',restaurants.length>0);
+  const g=$('#grid'); g.innerHTML='';
+  if(restaurants.length && !list.length){ g.innerHTML='<p class="note" style="grid-column:1/-1;text-align:center">Sin resultados</p>'; return; }
+  for(const r of list){
+    const b=document.createElement('button'); b.className='rcard';
+    const n=(r.photoIds||[]).length;
+    b.innerHTML=`<div class="rcover">${ICON_PLATE}${n?`<span class="rcount">📷 ${n}</span>`:''}</div><div class="rinfo"><div class="rtitle">${esc(r.title)}</div></div>`;
+    b.onclick=()=>location.hash='#/r/'+encodeURIComponent(r.id);
+    g.appendChild(b);
+    if(n){
+      getOne('photos',r.photoIds[0]).then(p=>{ if(p){ const c=b.querySelector('.rcover'); c.querySelector('svg').replaceWith(Object.assign(new Image(),{src:photoURL(p),alt:'',loading:'lazy'})); }});
+    }
+  }
+}
+$('#search').addEventListener('input',renderGrid);
+
+/* ============ Detail ============ */
+async function showDetail(id){
+  const r=await getOne('restaurants',id);
+  if(!r){ location.hash=''; return; }
+  current=r; currentPhotos=await photosOf(r);
+  $('#home').classList.add('hidden'); $('#detail').classList.remove('hidden');
+  $('#backBtn').classList.remove('hidden'); $('#title').textContent=r.title; $('#fabText').textContent='Fotos';
+  renderDetail();
+  window.scrollTo(0,0);
+}
+function renderDetail(){
+  const n=currentPhotos.length;
+  $('#dmeta').textContent=`${n} ${n===1?'foto':'fotos'} · Actualizado ${fmtDate(current.updated)}`;
+  const g=$('#pgrid'); g.innerHTML='';
+  currentPhotos.forEach((p,i)=>{
+    const b=document.createElement('button'); b.className='pitem';
+    b.innerHTML=`<img src="${photoURL(p)}" alt="Foto ${i+1}" loading="lazy">${i===0?'<span class="badge">Portada</span>':''}`;
+    b.onclick=()=>openViewer(i);
+    g.appendChild(b);
+  });
+  const add=document.createElement('button'); add.className='addtile';
+  add.innerHTML='<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Añadir fotos';
+  add.onclick=()=>pickPhotos(files=>addPhotosTo(current,files));
+  g.appendChild(add);
+}
+
+async function addPhotosTo(r,files){
+  if(!files.length) return;
+  loading(true,`Guardando ${files.length} ${files.length===1?'foto':'fotos'}…`);
+  try{
+    const newIds=[];
+    for(const f of files){
+      const blob=await compress(f); const id=uid();
+      await put('photos',{id,rid:r.id,blob,created:Date.now()});
+      newIds.push(id);
+    }
+    r.photoIds=[...(r.photoIds||[]),...newIds]; r.updated=Date.now();
+    await put('restaurants',r);
+    if(current&&current.id===r.id){ currentPhotos=await photosOf(r); renderDetail(); }
+    toast('Fotos añadidas');
+  }catch(e){ console.error(e); toast('No se pudieron guardar las fotos'); }
+  loading(false);
+}
+
+async function deletePhoto(r,pid){
+  await tx(['photos','restaurants'],'readwrite',t=>{
+    t.objectStore('photos').delete(pid);
+    r.photoIds=r.photoIds.filter(x=>x!==pid); r.updated=Date.now();
+    t.objectStore('restaurants').put(r);
+  });
+  dropURL(pid);
+  currentPhotos=await photosOf(r);
+}
+async function setCover(r,pid){
+  r.photoIds=[pid,...r.photoIds.filter(x=>x!==pid)]; r.updated=Date.now();
+  await put('restaurants',r); currentPhotos=await photosOf(r);
+}
+async function deleteRestaurant(r){
+  await tx(['photos','restaurants'],'readwrite',t=>{
+    (r.photoIds||[]).forEach(pid=>{t.objectStore('photos').delete(pid);});
+    t.objectStore('restaurants').delete(r.id);
+  });
+  (r.photoIds||[]).forEach(dropURL);
+}
+
+/* ============ Photo picking ============ */
+let pickCb=null;
+function pickPhotos(cb){
+  pickCb=cb;
+  openSheet(`<h3>Añadir fotos</h3>
+    <div class="menu-list">
+      <button data-a="cam"><svg viewBox="0 0 24 24"><path d="M3 8h3l2-3h8l2 3h3v12H3z"/><circle cx="12" cy="13" r="4"/></svg><div>Hacer foto<small>Usa la cámara</small></div></button>
+      <button data-a="gal"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg><div>Elegir de la galería<small>Puedes seleccionar varias</small></div></button>
+    </div>`,el=>{
+      el.querySelector('[data-a=cam]').onclick=()=>{closeSheet();$('#fileCamera').click();};
+      el.querySelector('[data-a=gal]').onclick=()=>{closeSheet();$('#fileGallery').click();};
+    });
+}
+['#fileGallery','#fileCamera'].forEach(s=>$(s).addEventListener('change',e=>{
+  const files=[...e.target.files]; e.target.value='';
+  if(pickCb&&files.length) pickCb(files);
+}));
+
+/* ============ Sheets ============ */
+function openSheet(html,setup){
+  const root=$('#modalRoot');
+  root.innerHTML=`<div class="backdrop"><div class="sheet" role="dialog">${html}</div></div>`;
+  const bd=root.firstElementChild;
+  bd.addEventListener('click',e=>{ if(e.target===bd) closeSheet(); });
+  setup&&setup(bd.firstElementChild);
+}
+function closeSheet(){ $('#modalRoot').innerHTML=''; }
+
+/* New / edit restaurant */
+function restaurantForm(existing){
+  let pending=[]; // files
+  const isNew=!existing;
+  openSheet(`<h3>${isNew?'Nuevo restaurante':'Editar nombre'}</h3>
+    <div class="field"><label for="rtitle">Nombre del restaurante</label>
+    <input id="rtitle" maxlength="80" placeholder="Ej. Casa Lola" value="${existing?esc(existing.title):''}" autocomplete="off"></div>
+    ${isNew?`<div class="thumbs" id="thumbs"></div>
+    <div class="pickrow">
+      <button class="btn soft" id="pCam"><svg viewBox="0 0 24 24"><path d="M3 8h3l2-3h8l2 3h3v12H3z"/><circle cx="12" cy="13" r="4"/></svg>Cámara</button>
+      <button class="btn soft" id="pGal"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>Galería</button>
+    </div>`:''}
+    <div class="actions"><button class="btn ghost" id="cancel">Cancelar</button><button class="btn primary" id="save">${isNew?'Guardar':'Guardar'}</button></div>`,
+  el=>{
+    const ti=el.querySelector('#rtitle'), save=el.querySelector('#save');
+    const upd=()=>save.disabled=!ti.value.trim();
+    ti.addEventListener('input',upd); upd();
+    setTimeout(()=>ti.focus(),250);
+    el.querySelector('#cancel').onclick=closeSheet;
+    if(isNew){
+      const thumbs=el.querySelector('#thumbs');
+      const drawThumbs=()=>{
+        thumbs.innerHTML='';
+        pending.forEach((f,i)=>{
+          const d=document.createElement('div'); d.className='thumb';
+          const u=URL.createObjectURL(f);
+          d.innerHTML=`<img src="${u}" alt=""><button class="x" aria-label="Quitar">×</button>`;
+          d.querySelector('.x').onclick=()=>{URL.revokeObjectURL(u);pending.splice(i,1);drawThumbs();};
+          thumbs.appendChild(d);
+        });
+      };
+      const addFiles=fs=>{pending.push(...fs);drawThumbs();};
+      el.querySelector('#pCam').onclick=()=>{pickCb=addFiles;$('#fileCamera').click();};
+      el.querySelector('#pGal').onclick=()=>{pickCb=addFiles;$('#fileGallery').click();};
+    }
+    save.onclick=async()=>{
+      const title=ti.value.trim(); if(!title) return;
+      if(isNew){
+        const r={id:uid(),title,photoIds:[],created:Date.now(),updated:Date.now()};
+        await put('restaurants',r);
+        const files=pending; closeSheet();
+        if(files.length) await addPhotosTo(r,files);
+        location.hash='#/r/'+encodeURIComponent(r.id);
+      }else{
+        existing.title=title; existing.updated=Date.now();
+        await put('restaurants',existing); closeSheet();
+        $('#title').textContent=title; renderDetail(); toast('Nombre actualizado');
+      }
+    };
+    ti.addEventListener('keydown',e=>{ if(e.key==='Enter') save.click(); });
+  });
+}
+
+/* FAB */
+$('#fab').onclick=()=>{ if(current) pickPhotos(files=>addPhotosTo(current,files)); else restaurantForm(null); };
+$('#backBtn').onclick=()=>{ if(cameFromHome) history.back(); else location.replace('#'); };
+let cameFromHome=false;
+window.addEventListener('hashchange',e=>{ cameFromHome=/#\/r\//.test(location.hash) && !/#\/r\//.test(e.oldURL); });
+
+/* More menu */
+$('#moreBtn').onclick=()=>{
+  if(current){
+    openSheet(`<h3>${esc(current.title)}</h3><div class="menu-list">
+      <button data-a="rename"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>Cambiar nombre</button>
+      <button data-a="add"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Añadir fotos</button>
+      <button data-a="del" class="danger"><svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>Eliminar restaurante</button>
+    </div>`,el=>{
+      el.querySelector('[data-a=rename]').onclick=()=>restaurantForm(current);
+      el.querySelector('[data-a=add]').onclick=()=>{closeSheet();pickPhotos(f=>addPhotosTo(current,f));};
+      el.querySelector('[data-a=del]').onclick=()=>confirmSheet(`¿Eliminar «${esc(current.title)}»?`,'Se borrarán también todas sus fotos. No se puede deshacer.','Eliminar',async()=>{
+        await deleteRestaurant(current); toast('Restaurante eliminado'); location.hash='';
+      });
+    });
+  }else{
+    openSheet(`<h3>Opciones</h3><div class="menu-list">
+      <button data-a="exp"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><div>Exportar copia de seguridad<small>Descarga un archivo con todo</small></div></button>
+      <button data-a="imp"><svg viewBox="0 0 24 24"><path d="M12 21V9M7 14l5-5 5 5M5 3h14"/></svg><div>Importar copia de seguridad<small>Añade restaurantes desde un archivo</small></div></button>
+      <button data-a="theme"><svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><div>Tema<small id="themeLabel"></small></div></button>
+      <button data-a="ins"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg><div>Instalar la app<small>Añadir a la pantalla de inicio</small></div></button>
+    </div><p class="note">Las fotos se guardan solo en este dispositivo. Haz copias de seguridad de vez en cuando.</p>`,el=>{
+      el.querySelector('[data-a=exp]').onclick=()=>{closeSheet();exportBackup();};
+      el.querySelector('[data-a=imp]').onclick=()=>{closeSheet();$('#fileImport').click();};
+      el.querySelector('#themeLabel').textContent=THEME_NAMES[getTheme()];
+      el.querySelector('[data-a=theme]').onclick=themeSheet;
+      el.querySelector('[data-a=ins]').onclick=()=>{closeSheet();doInstall(true);};
+    });
+  }
+};
+
+function confirmSheet(title,text,okLabel,onOk){
+  openSheet(`<h3>${title}</h3><p class="note">${text}</p>
+    <div class="actions"><button class="btn ghost" id="c">Cancelar</button><button class="btn danger" id="o">${okLabel}</button></div>`,el=>{
+    el.querySelector('#c').onclick=closeSheet;
+    el.querySelector('#o').onclick=async()=>{closeSheet();await onOk();};
+  });
+}
+
+/* ============ Viewer (swipe + pinch zoom) ============ */
+let V=null;
+function openViewer(index){
+  const el=document.createElement('div'); el.className='viewer'; el.id='viewer';
+  el.innerHTML=`
+    <div class="vtop"><button class="vbtn" id="vClose" aria-label="Cerrar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button><div class="t" id="vTitle"></div></div>
+    <div class="vstage"><div class="vtrack" id="vTrack"></div>
+      <button class="vnav l" id="vPrev" aria-label="Anterior"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <button class="vnav r" id="vNext" aria-label="Siguiente"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button></div>
+    <div class="vbot">
+      <button class="vbtn" id="vCover"><svg viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></svg>Portada</button>
+      <button class="vbtn" id="vShare"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5M5 14v7h14v-7"/></svg>Compartir</button>
+      <button class="vbtn" id="vDel"><svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>Eliminar</button>
+    </div>`;
+  document.body.appendChild(el);
+  document.body.style.overflow='hidden';
+  V={el,index,track:el.querySelector('#vTrack'),scale:1,tx:0,ty:0};
+  buildSlides(); goTo(index,false);
+  history.pushState({viewer:true},'');
+  el.querySelector('#vClose').onclick=()=>history.back();
+  el.querySelector('#vPrev').onclick=()=>goTo(V.index-1);
+  el.querySelector('#vNext').onclick=()=>goTo(V.index+1);
+  el.querySelector('#vDel').onclick=()=>{
+    const p=currentPhotos[V.index];
+    confirmSheet('¿Eliminar esta foto?','Se borrará de este restaurante.','Eliminar',async()=>{
+      await deletePhoto(current,p.id); renderDetail();
+      if(!currentPhotos.length){ history.back(); return; }
+      buildSlides(); goTo(Math.min(V.index,currentPhotos.length-1),false); toast('Foto eliminada');
+    });
+  };
+  el.querySelector('#vCover').onclick=async()=>{
+    const p=currentPhotos[V.index]; await setCover(current,p.id); renderDetail(); buildSlides(); goTo(0,false); toast('Portada actualizada');
+  };
+  el.querySelector('#vShare').onclick=async()=>{
+    const p=currentPhotos[V.index];
+    const file=new File([p.blob],`${current.title.replace(/[^\w\-]+/g,'_')}_${V.index+1}.jpg`,{type:p.blob.type||'image/jpeg'});
+    try{
+      if(navigator.canShare&&navigator.canShare({files:[file]})) await navigator.share({files:[file],title:current.title});
+      else { const a=document.createElement('a'); a.href=photoURL(p); a.download=file.name; a.click(); }
+    }catch(e){}
+  };
+  attachGestures();
+}
+function buildSlides(){
+  V.track.innerHTML=currentPhotos.map((p,i)=>`<div class="vslide"><img src="${photoURL(p)}" alt="Foto ${i+1}" draggable="false"></div>`).join('');
+}
+function goTo(i,anim=true){
+  i=Math.max(0,Math.min(currentPhotos.length-1,i)); V.index=i; resetZoom();
+  V.track.style.transition=anim?'transform .28s ease':'none';
+  V.track.style.transform=`translateX(${-i*100}%)`;
+  V.el.querySelector('#vTitle').textContent=`${current.title} · ${i+1}/${currentPhotos.length}`;
+  V.el.querySelector('#vCover').style.display=i===0?'none':'';
+}
+function curImg(){ return V.track.children[V.index]?.querySelector('img'); }
+function applyZoom(){ const im=curImg(); if(im) im.style.transform=`translate(${V.tx}px,${V.ty}px) scale(${V.scale})`; }
+function resetZoom(){ V.scale=1;V.tx=0;V.ty=0; [...V.track.querySelectorAll('img')].forEach(im=>{im.style.transition='';im.style.transform='';}); }
+function zoomAt(cx,cy,newScale){
+  const im=curImg(); if(!im) return;
+  newScale=Math.max(1,Math.min(6,newScale));
+  const r=im.getBoundingClientRect();
+  // point in image-local (unscaled) coords
+  const lx=(cx-r.left)/V.scale, ly=(cy-r.top)/V.scale;
+  V.tx+= (V.scale-newScale)*lx; V.ty+=(V.scale-newScale)*ly; V.scale=newScale;
+  if(V.scale<=1.01){V.scale=1;V.tx=0;V.ty=0;}
+  applyZoom();
+}
+function clampPan(){
+  const im=curImg(); if(!im) return;
+  const w=im.offsetWidth,h=im.offsetHeight,sw=w*V.scale,sh=h*V.scale;
+  const minX=w-sw, minY=h-sh;
+  V.tx=Math.min(0,Math.max(minX,V.tx)); V.ty=Math.min(0,Math.max(minY,V.ty));
+}
+function attachGestures(){
+  const stage=V.el.querySelector('.vstage');
+  const pts=new Map(); let start=null, lastTap=0, moved=false;
+  stage.addEventListener('pointerdown',e=>{
+    if(e.target.closest('.vnav')) return;
+    stage.setPointerCapture(e.pointerId);
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    moved=false;
+    if(pts.size===1) start={x:e.clientX,y:e.clientY,tx:V.tx,ty:V.ty,t:Date.now()};
+    if(pts.size===2){ const [a,b]=[...pts.values()]; start={dist:Math.hypot(a.x-b.x,a.y-b.y),scale:V.scale,cx:(a.x+b.x)/2,cy:(a.y+b.y)/2,pinch:true}; }
+  });
+  stage.addEventListener('pointermove',e=>{
+    if(!pts.has(e.pointerId)||!start) return;
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pts.size===2&&start.pinch){
+      const [a,b]=[...pts.values()]; const d=Math.hypot(a.x-b.x,a.y-b.y);
+      zoomAt((a.x+b.x)/2,(a.y+b.y)/2,start.scale*d/start.dist*(1)); start.scale=V.scale; start.dist=d; moved=true;
+      return;
+    }
+    if(pts.size!==1||start.pinch) return;
+    const dx=e.clientX-start.x, dy=e.clientY-start.y;
+    if(Math.abs(dx)>6||Math.abs(dy)>6) moved=true;
+    if(V.scale>1){ V.tx=start.tx+dx; V.ty=start.ty+dy; clampPan(); applyZoom(); }
+    else { V.track.style.transition='none'; V.track.style.transform=`translateX(calc(${-V.index*100}% + ${dx}px))`; }
+  });
+  const end=e=>{
+    if(!pts.has(e.pointerId)) return;
+    pts.delete(e.pointerId);
+    if(pts.size===1&&start&&start.pinch){ const p=[...pts.values()][0]; start={x:p.x,y:p.y,tx:V.tx,ty:V.ty,t:Date.now()}; return; }
+    if(pts.size>0||!start) return;
+    const dx=e.clientX-start.x;
+    if(!start.pinch&&V.scale===1&&moved){
+      const w=stage.offsetWidth;
+      if(dx<-w*0.18&&V.index<currentPhotos.length-1) goTo(V.index+1);
+      else if(dx>w*0.18&&V.index>0) goTo(V.index-1);
+      else goTo(V.index);
+    }
+    if(!moved){
+      const now=Date.now();
+      if(now-lastTap<300){ // double tap
+        const im=curImg(); if(im) im.style.transition='transform .2s';
+        if(V.scale>1) { V.scale=1;V.tx=0;V.ty=0;applyZoom(); } else zoomAt(e.clientX,e.clientY,2.5);
+        setTimeout(()=>{const im=curImg(); if(im) im.style.transition='';},220);
+        lastTap=0; clearTimeout(V.tapT);
+      } else {
+        lastTap=now;
+        V.tapT=setTimeout(()=>V.el.classList.toggle('ui-off'),300);
+      }
+    }
+    start=null;
+  };
+  stage.addEventListener('pointerup',end); stage.addEventListener('pointercancel',end);
+  stage.addEventListener('wheel',e=>{ e.preventDefault(); zoomAt(e.clientX,e.clientY,V.scale*(e.deltaY<0?1.15:1/1.15)); clampPan(); applyZoom(); },{passive:false});
+  V.key=e=>{ if(e.key==='ArrowRight') goTo(V.index+1); else if(e.key==='ArrowLeft') goTo(V.index-1); else if(e.key==='Escape') history.back(); };
+  document.addEventListener('keydown',V.key);
+}
+function closeViewer(){
+  if(!V) return;
+  document.removeEventListener('keydown',V.key);
+  V.el.remove(); V=null; document.body.style.overflow='';
+}
+window.addEventListener('popstate',()=>{ if(V) closeViewer(); closeSheet(); });
+
+/* ============ Backup ============ */
+const blobToDataURL=b=>new Promise(r=>{const f=new FileReader();f.onload=()=>r(f.result);f.readAsDataURL(b);});
+async function exportBackup(){
+  if(!restaurants.length){ toast('No hay nada que exportar'); return; }
+  loading(true,'Preparando copia…');
+  try{
+    const photos=await getAll('photos');
+    const data={app:'mis-cartas',version:1,exported:Date.now(),restaurants,
+      photos:await Promise.all(photos.map(async p=>({id:p.id,rid:p.rid,created:p.created,data:await blobToDataURL(p.blob)})))};
+    const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+    const name=`cartas-backup-${new Date().toISOString().slice(0,10)}.json`;
+    const file=new File([blob],name,{type:'application/json'});
+    loading(false);
+    if(navigator.canShare&&navigator.canShare({files:[file]})&&/Android|iPhone|iPad/i.test(navigator.userAgent)){
+      try{ await navigator.share({files:[file],title:'Copia de Mis Cartas'}); return; }catch(e){ if(e.name==='AbortError') return; }
+    }
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+  }catch(e){ console.error(e); loading(false); toast('Error al exportar'); }
+}
+$('#fileImport').addEventListener('change',async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  loading(true,'Importando…');
+  try{
+    const data=JSON.parse(await f.text());
+    if(data.app!=='mis-cartas') throw new Error('formato');
+    const existing=new Set((await getAll('restaurants')).map(r=>r.id));
+    let added=0;
+    for(const r of data.restaurants){
+      if(existing.has(r.id)) continue;
+      const ps=data.photos.filter(p=>p.rid===r.id);
+      for(const p of ps){ const blob=await (await fetch(p.data)).blob(); await put('photos',{id:p.id,rid:p.rid,created:p.created,blob}); }
+      await put('restaurants',r); added++;
+    }
+    loading(false); toast(added?`${added} restaurante(s) importado(s)`:'Ya tenías todo lo de la copia');
+    showHome();
+  }catch(err){ console.error(err); loading(false); toast('Archivo de copia no válido'); }
+});
+
+/* ============ Tema ============ */
+const THEME_NAMES={auto:'Automático (según el sistema)',light:'Claro',dark:'Oscuro'};
+function getTheme(){ try{return localStorage.getItem('theme')||'auto';}catch(e){return 'auto';} }
+function isDark(){ const t=getTheme(); return t==='dark'||(t==='auto'&&matchMedia('(prefers-color-scheme: dark)').matches); }
+function applyTheme(){
+  const t=getTheme();
+  if(t==='auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme=t;
+  $('#metaTheme').setAttribute('content',isDark()?'#2a1d18':'#c44a2c');
+  $('#themeIcon').innerHTML=isDark()
+    ? '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'
+    : '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>';
+  $('#themeBtn').setAttribute('aria-label',isDark()?'Cambiar a tema claro':'Cambiar a tema oscuro');
+}
+$('#themeBtn').onclick=()=>{ setTheme(isDark()?'light':'dark'); toast(isDark()?'Tema oscuro':'Tema claro',1200); };
+function setTheme(t){ try{localStorage.setItem('theme',t);}catch(e){} applyTheme(); }
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme);
+function themeSheet(){
+  const cur=getTheme();
+  const ic={auto:'<path d="M12 3a9 9 0 1 0 0 18z" fill="currentColor"/><circle cx="12" cy="12" r="9"/>',light:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',dark:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'};
+  openSheet(`<h3>Tema</h3><div class="menu-list">${['auto','light','dark'].map(t=>`<button data-t="${t}"><svg viewBox="0 0 24 24">${ic[t]}</svg>${THEME_NAMES[t]}${t===cur?'<span class="check">✓</span>':''}</button>`).join('')}</div>`,el=>{
+    el.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{setTheme(b.dataset.t);closeSheet();});
+  });
+}
+applyTheme();
+
+/* ============ Install ============ */
+let deferredPrompt=null;
+const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+const isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault(); deferredPrompt=e;
+  if(!localStorage.getItem('installDismissed')) $('#installBanner').classList.remove('hidden');
+});
+window.addEventListener('appinstalled',()=>{ $('#installBanner').classList.add('hidden'); toast('¡App instalada!'); });
+async function doInstall(fromMenu){
+  if(isStandalone()){ toast('La app ya está instalada'); return; }
+  if(deferredPrompt){ deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; $('#installBanner').classList.add('hidden'); return; }
+  openSheet(`<h3>Instalar la app</h3><p class="note">${isIOS
+    ? 'En Safari pulsa el botón <b>Compartir</b> (cuadrado con flecha) y elige <b>«Añadir a pantalla de inicio»</b>.'
+    : 'Abre el menú del navegador (⋮) y elige <b>«Instalar aplicación»</b> o <b>«Añadir a pantalla de inicio»</b>.'}</p>
+    <div class="actions"><button class="btn primary" id="ok">Entendido</button></div>`,el=>el.querySelector('#ok').onclick=closeSheet);
+}
+$('#installGo').onclick=()=>doInstall();
+$('#installNo').onclick=()=>{ $('#installBanner').classList.add('hidden'); try{localStorage.setItem('installDismissed','1');}catch(e){} };
+if(isIOS&&!isStandalone()&&!localStorage.getItem('installDismissed')){
+  $('#installText').textContent='Compartir → Añadir a inicio'; $('#installBanner').classList.remove('hidden');
+}
+
+/* ============ Boot ============ */
+(async()=>{
+  try{ db=await openDB(); }catch(e){ toast('Tu navegador no permite guardar datos'); return; }
+  if(navigator.storage&&navigator.storage.persist) navigator.storage.persist().catch(()=>{});
+  route();
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>
