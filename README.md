@@ -5,7 +5,7 @@ App web instalable (PWA) para guardar las cartas de tus restaurantes favoritos c
 ## Funciones
 - Crear restaurantes con **nombre** y **varias fotos** (cámara o galería, selección múltiple).
 - Ver las fotos a pantalla completa: deslizar entre fotos, **pellizcar o doble toque para ampliar** y leer bien la carta.
-- Elegir la foto de portada, eliminar fotos, compartir una foto, renombrar y borrar restaurantes.
+- Elegir la foto de portada, eliminar fotos, compartir cualquier foto con el botón que aparece en su miniatura, renombrar y borrar restaurantes.
 - Buscador (aparece cuando tienes 4 o más restaurantes).
 - **Copia de seguridad**: exportar e importar todo en un archivo `.json` (útil para pasar los datos a otro móvil).
 - **Tema claro y oscuro**: botón ☀️/🌙 arriba para cambiarlo, o modo automático desde el menú ⋮.
@@ -15,7 +15,7 @@ Las fotos se comprimen (máx. 2000 px) y se guardan en el propio dispositivo (In
 
 ## Publicar en GitHub Pages
 1. Crea un repositorio nuevo en GitHub (por ejemplo `mis-cartas`).
-2. Sube todos los archivos de esta carpeta (`index.html`, `manifest.json`, `sw.js`, `icons/`, `README.md`) a la raíz del repositorio.
+2. Sube todos los archivos de esta carpeta (todos sueltos, sin carpetas) a la raíz del repositorio.
 3. Ve a **Settings → Pages**, en *Source* elige **Deploy from a branch**, rama `main` y carpeta `/ (root)`. Guarda.
 4. En un par de minutos estará en `https://TU-USUARIO.github.io/mis-cartas/`.
 

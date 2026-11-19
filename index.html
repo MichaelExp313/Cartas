@@ -8,8 +8,8 @@
 <meta name="description" content="Guarda las cartas de tus restaurantes favoritos con fotos.">
 <script>try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t;}catch(e){}</script>
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" href="icons/favicon-32.png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -69,6 +69,10 @@ header h1{font-size:20px;margin:0;flex:1;white-space:nowrap;overflow:hidden;text
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;padding:12px 16px}
 .pitem{position:relative;aspect-ratio:3/4;border-radius:12px;overflow:hidden;background:var(--soft)}
 .pitem img{width:100%;height:100%;object-fit:cover;display:block}
+.pitem{cursor:pointer}
+.pshare{position:absolute;right:6px;bottom:6px;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,.55);display:grid;place-items:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.pshare:active{background:var(--accent)}
+.pshare svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .pitem .badge{position:absolute;left:6px;top:6px;background:var(--accent);color:#fff;font-size:11px;font-weight:600;padding:2px 7px;border-radius:999px}
 .addtile{aspect-ratio:3/4;border-radius:12px;border:2px dashed #d8c3b3;color:var(--accent);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:600;background:var(--surface)}
 .addtile svg{width:30px;height:30px;stroke:var(--accent);stroke-width:2;fill:none;stroke-linecap:round}
@@ -166,7 +170,7 @@ header{background:var(--hdr)}
 
 <main id="home">
   <div class="install hidden" id="installBanner">
-    <img src="icons/icon-192.png" alt="">
+    <img src="icon-192.png" alt="">
     <div><b>Instala la app</b><span id="installText">Tenla en tu pantalla de inicio</span></div>
     <button class="go" id="installGo">Instalar</button>
     <button class="no" id="installNo" aria-label="Cerrar">×</button>
@@ -174,7 +178,7 @@ header{background:var(--hdr)}
   <div class="search hidden" id="searchWrap"><input id="search" type="search" placeholder="Buscar restaurante…" autocomplete="off"></div>
   <div class="grid" id="grid"></div>
   <div class="empty hidden" id="empty">
-    <div class="big"><img src="icons/icon-192.png" alt=""></div>
+    <div class="big"><img src="icon-192.png" alt=""></div>
     <h2>Aún no tienes cartas</h2>
     <p>Pulsa <b>Añadir</b> para crear un restaurante y subir las fotos de su carta.</p>
   </div>
@@ -317,9 +321,10 @@ function renderDetail(){
   $('#dmeta').textContent=`${n} ${n===1?'foto':'fotos'} · Actualizado ${fmtDate(current.updated)}`;
   const g=$('#pgrid'); g.innerHTML='';
   currentPhotos.forEach((p,i)=>{
-    const b=document.createElement('button'); b.className='pitem';
-    b.innerHTML=`<img src="${photoURL(p)}" alt="Foto ${i+1}" loading="lazy">${i===0?'<span class="badge">Portada</span>':''}`;
+    const b=document.createElement('div'); b.className='pitem'; b.setAttribute('role','button'); b.tabIndex=0;
+    b.innerHTML=`<img src="${photoURL(p)}" alt="Foto ${i+1}" loading="lazy">${i===0?'<span class="badge">Portada</span>':''}<button class="pshare" aria-label="Compartir foto ${i+1}"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/></svg></button>`;
     b.onclick=()=>openViewer(i);
+    b.querySelector('.pshare').onclick=e=>{ e.stopPropagation(); sharePhoto(i); };
     g.appendChild(b);
   });
   const add=document.createElement('button'); add.className='addtile';
@@ -492,6 +497,16 @@ function confirmSheet(title,text,okLabel,onOk){
   });
 }
 
+/* ============ Compartir foto ============ */
+async function sharePhoto(i){
+  const p=currentPhotos[i]; if(!p) return;
+  const file=new File([p.blob],`${current.title.replace(/[^\w\-]+/g,'_')}_${i+1}.jpg`,{type:p.blob.type||'image/jpeg'});
+  try{
+    if(navigator.canShare&&navigator.canShare({files:[file]})) await navigator.share({files:[file],title:current.title});
+    else { const a=document.createElement('a'); a.href=photoURL(p); a.download=file.name; a.click(); toast('Foto descargada'); }
+  }catch(e){}
+}
+
 /* ============ Viewer (swipe + pinch zoom) ============ */
 let V=null;
 function openViewer(index){
@@ -525,14 +540,7 @@ function openViewer(index){
   el.querySelector('#vCover').onclick=async()=>{
     const p=currentPhotos[V.index]; await setCover(current,p.id); renderDetail(); buildSlides(); goTo(0,false); toast('Portada actualizada');
   };
-  el.querySelector('#vShare').onclick=async()=>{
-    const p=currentPhotos[V.index];
-    const file=new File([p.blob],`${current.title.replace(/[^\w\-]+/g,'_')}_${V.index+1}.jpg`,{type:p.blob.type||'image/jpeg'});
-    try{
-      if(navigator.canShare&&navigator.canShare({files:[file]})) await navigator.share({files:[file],title:current.title});
-      else { const a=document.createElement('a'); a.href=photoURL(p); a.download=file.name; a.click(); }
-    }catch(e){}
-  };
+  el.querySelector('#vShare').onclick=()=>sharePhoto(V.index);
   attachGestures();
 }
 function buildSlides(){
